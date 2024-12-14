@@ -1,0 +1,239 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Data Visualization</h1>
+  
+  <div>
+    <canvas id="bldgChart" width="400" height="200"></canvas>
+  </div>
+  
+  <script>
+    // Fetch data from Flask backend
+    async function fetchData() {
+      const response = await fetch("http://localhost:3000/get_data");
+      const data = await response.json();
+      return data.logs;
+    }
+
+    // Prepare and visualize the data
+    async function visualizeData() {
+      const logs = await fetchData();
+      
+      // Group data by building number
+      const bldgData = {};
+      logs.forEach(log => {
+        const bldg = log.bldg_number;
+        bldgData[bldg] = (bldgData[bldg] || 0) + 1;
+      });
+
+      const labels = Object.keys(bldgData);
+      const values = Object.values(bldgData);
+
+      // Create a bar chart
+      const ctx = document.getElementById('bldgChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Number of Logs by Building',
+            data: values,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    // Run visualization on page load
+    visualizeData();
+  </script>
+</body>
+</html>
+
+ -->
+
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Data Analysis</title>
+   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   <style>
+     body {
+       font-family: Arial, sans-serif;
+       padding: 20px;
+     }
+     h1, h2 {
+       text-align: center;
+     }
+     .flex-container {
+       display: flex;
+       flex-wrap: wrap;
+       justify-content: space-around;
+       gap: 20px;
+       margin-top: 20px;
+     }
+     .chart-container {
+       flex: 1 1 calc(45% - 20px);
+       max-width: 45%;
+     }
+     canvas {
+       max-width: 100%;
+       height: auto;
+     }
+   </style>
+ </head>
+ <body>
+   <h1>Data Visualization</h1>
+   
+   <!-- Main Graph -->
+   <div>
+     <canvas id="bldgChart" width="400" height="200"></canvas>
+   </div>
+ 
+   <h2>Incorrect Passwords Per Day by Building</h2>
+   <div class="flex-container">
+     <div class="chart-container"><canvas id="bldg1Chart"></canvas></div>
+     <div class="chart-container"><canvas id="bldg2Chart"></canvas></div>
+     <div class="chart-container"><canvas id="bldg3Chart"></canvas></div>
+     <div class="chart-container"><canvas id="bldg4Chart"></canvas></div>
+   </div>
+ 
+   <script>
+     // Fetch data from Flask backend
+     async function fetchData() {
+       const response = await fetch("http://localhost:3000/get_data");
+       const data = await response.json();
+       return data.logs;
+     }
+ 
+     // Process logs to get incorrect passwords per day
+     function processIncorrectPasswords(logs) {
+       const buildings = [1, 2, 3, 4];
+       const result = {};
+ 
+       buildings.forEach(bldg => {
+         result[bldg] = {};
+       });
+ 
+       logs.forEach(log => {
+        // console.log(log)
+         if (log.password == 'False') {
+           const date = new Date(log.timestamp).toISOString().split('T')[0]; // Get YYYY-MM-DD
+           const bldg = log.bldg_number;
+          // console.log(date)
+           if (!result[bldg][date]) {
+             result[bldg][date] = 0;
+           }
+ 
+           result[bldg][date]++;
+          //  console.log(result[bldg]);
+         }
+       });
+      //  console.log(result[1])
+       return result;
+     }
+ 
+     // Visualize data using Chart.js
+     async function visualizeData() {
+       const logs = await fetchData();
+ 
+       // Main chart data: Count logs per building
+       const bldgData = {};
+       logs.forEach(log => {
+         const bldg = log.bldg_number;
+         bldgData[bldg] = (bldgData[bldg] || 0) + 1;
+       });
+ 
+       const mainLabels = Object.keys(bldgData);
+       const mainValues = Object.values(bldgData);
+ 
+       // Create Main Chart
+       const ctx = document.getElementById('bldgChart').getContext('2d');
+       new Chart(ctx, {
+         type: 'bar',
+         data: {
+           labels: mainLabels,
+           datasets: [{
+             label: 'Number of Logs by Building',
+             data: mainValues,
+             backgroundColor: 'rgba(75, 192, 192, 0.2)',
+             borderColor: 'rgba(75, 192, 192, 1)',
+             borderWidth: 1
+           }]
+         },
+         options: {
+           scales: {
+             y: {
+               beginAtZero: true
+             }
+           }
+         }
+       });
+ 
+       // Process and Create Charts for Incorrect Passwords Per Day
+       const incorrectData = processIncorrectPasswords(logs);
+ 
+       Object.keys(incorrectData).forEach((bldg, index) => {
+         const dates = Object.keys(incorrectData[bldg]);
+         const counts = Object.values(incorrectData[bldg]);
+ 
+         const chartId = `bldg${bldg}Chart`;
+         const bldgCtx = document.getElementById(chartId).getContext('2d');
+         
+         new Chart(bldgCtx, {
+           type: 'bar',
+           data: {
+             labels: dates,
+             datasets: [{
+               label: `Building ${bldg} Incorrect Passwords`,
+               data: counts,
+               borderColor: 'rgba(255, 99, 132, 1)',
+               backgroundColor: 'rgba(255, 99, 132, 0.2)',
+               fill: true
+             }]
+           },
+           options: {
+             responsive: true,
+             scales: {
+               x: {
+                 title: {
+                   display: true,
+                   text: 'Date'
+                 }
+               },
+               y: {
+                 beginAtZero: true,
+                 title: {
+                   display: true,
+                   text: 'Incorrect Attempts'
+                 }
+               }
+             }
+           }
+         });
+       });
+     }
+ 
+     // Run visualization on page load
+     visualizeData();
+   </script>
+ </body>
+ </html>
+ 
